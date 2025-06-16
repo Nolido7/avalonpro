@@ -11,101 +11,99 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         html, body {
-            height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Prevenir scroll da página principal */
-        }
-        body {
-            font-family: 'Inter', sans-serif;
             background-color: #0c0a18;
-        }
-        
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .main-container {
-            position: relative;
-            z-index: 1;
             display: flex;
-            height: 100vh;
-            width: 100vw;
-            /* Layout em coluna para mobile, linha para desktop */
+            width: 100%;
+            /* Stack on mobile, side-by-side on desktop */
             flex-direction: column;
         }
         @media (min-width: 1024px) { /* lg breakpoint */
             .main-container {
                 flex-direction: row;
+                height: 100vh; /* Fill the screen height on desktop */
             }
         }
 
-        /* Coluna do Gerador de Sinais */
+        /* Left side: Signal Generator */
         .signal-generator-section {
+            position: relative; /* For the canvas background */
+            overflow: hidden;   /* To contain the canvas */
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 2rem 1rem;
             width: 100%;
-            height: 50%; /* Metade da altura em mobile */
-            min-height: 550px; /* Altura mínima para o gerador */
         }
         @media (min-width: 1024px) {
             .signal-generator-section {
-                width: 50%;
-                height: 100%; /* Altura total em desktop */
-                 min-height: auto;
+                flex: 1; /* Takes 50% width on desktop */
+                height: 100%;
             }
         }
+        
+        /* The content of the generator, sits on top of the canvas */
+        .signal-generator-content {
+            position: relative;
+            z-index: 2;
+        }
 
-        /* Coluna do Broker */
-        .broker-section {
-            padding: 0;
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 50%; /* Metade da altura em mobile */
-            flex-grow: 1; /* Ocupa o espaço restante em mobile */
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Right side: Broker Iframe */
+        .broker-section {
+            width: 100%;
+            height: 100vh; /* Takes full viewport height on its own */
         }
         @media (min-width: 1024px) {
             .broker-section {
-                width: 50%;
-                height: 100%; /* Altura total em desktop */
+                flex: 1; /* Takes 50% width on desktop */
+                height: 100%;
                 padding: 1rem;
                 padding-left: 0.5rem;
             }
         }
         
-        iframe {
-            border-radius: 1rem; /* Borda arredondada no iframe */
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        .broker-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #fff; /* Fallback color */
+        }
+        @media (min-width: 1024px) {
+            .broker-iframe {
+                border-radius: 0.75rem; /* Rounded corners on desktop */
+            }
         }
 
-        /* Efeito de Vidro (Glassmorphism) */
+        /* --- Component Styles --- */
         .glass-card {
-            background: rgba(17, 24, 39, 0.6);
+            background: rgba(17, 24, 39, 0.65);
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(106, 72, 238, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(106, 72, 238, 0.25);
         }
-
-        /* Animação para o card de resultado aparecer */
         .fade-in-scale { animation: fadeInScale 0.5s ease-in-out forwards; }
         @keyframes fadeInScale {
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
-
-        /* Animação do Loader */
         .loader-bar {
-            width: 10px;
-            height: 50px;
-            margin: 0 4px;
-            border-radius: 4px;
+            width: 10px; height: 50px; margin: 0 4px; border-radius: 4px;
             background-color: #818cf8;
             animation: loading-wave 1.2s infinite ease-in-out;
         }
@@ -116,40 +114,31 @@
             0%, 40%, 100% { transform: scaleY(0.4); background-color: #6366f1; }
             20% { transform: scaleY(1.0); background-color: #a5b4fc; }
         }
-
-        /* Efeito de brilho no botão */
         .btn-glow {
             position: relative;
             transition: all 0.3s ease-in-out;
         }
         .btn-glow::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             border-radius: 0.5rem;
             background: linear-gradient(45deg, #a855f7, #6366f1, #3b82f6);
-            filter: blur(15px);
-            opacity: 0.75;
-            z-index: -1;
+            filter: blur(15px); opacity: 0.75; z-index: -1;
             transition: opacity 0.3s ease-in-out;
         }
         .btn-glow:hover::before { opacity: 1; }
         .btn-glow:hover { transform: translateY(-2px) scale(1.02); }
-
-        /* Brilho nos textos de resultado */
         .text-glow-green { text-shadow: 0 0 8px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.5); }
         .text-glow-red { text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5); }
     </style>
 </head>
 <body>
 
-    <canvas id="bg-canvas"></canvas>
-
     <div class="main-container">
 
-        <!-- ===== SEÇÃO DO GERADOR DE SINAIS (ESQUERDA) ===== -->
+        <!-- ===== SEÇÃO DO GERADOR DE SINAIS (ESQUERDA/CIMA) ===== -->
         <div class="signal-generator-section">
-            <div class="w-full max-w-md mx-auto glass-card rounded-2xl">
+            <canvas id="bg-canvas"></canvas>
+            <div class="w-full max-w-md mx-auto glass-card rounded-2xl signal-generator-content">
                 <!-- Cabeçalho -->
                 <div class="p-6 text-center border-b border-white/10">
                     <h1 class="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400">
@@ -158,32 +147,25 @@
                     <p class="text-sm text-indigo-200/70 mt-1">Análise de mercado em tempo real</p>
                 </div>
                 <div class="p-6">
-                    <!-- Seleção de Criptomoeda -->
+                    <!-- Controles -->
                     <div class="mb-6">
                         <label for="crypto-select" class="block text-sm font-medium text-gray-300 mb-2">Escolha o Ativo</label>
                         <select id="crypto-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
-                            <option value="BTC/USD">Bitcoin (BTC/USD)</option>
-                            <option value="ETH/USD">Ethereum (ETH/USD)</option>
-                            <option value="SOL/USD">Solana (SOL/USD)</option>
-                            <option value="ADA/USD">Cardano (ADA/USD)</option>
+                            <option value="BTC/USD">Bitcoin (BTC/USD)</option><option value="ETH/USD">Ethereum (ETH/USD)</option><option value="SOL/USD">Solana (SOL/USD)</option><option value="ADA/USD">Cardano (ADA/USD)</option>
                         </select>
                     </div>
-                    <!-- Seleção de Timeframe -->
                     <div class="mb-8">
                         <label for="timeframe-select" class="block text-sm font-medium text-gray-300 mb-2">Escolha o Timeframe</label>
                         <select id="timeframe-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
-                            <option value="1">M1 (1 Minuto)</option>
-                            <option value="5">M5 (5 Minutos)</option>
-                            <option value="15">M15 (15 Minutos)</option>
+                            <option value="1">M1 (1 Minuto)</option><option value="5">M5 (5 Minutos)</option><option value="15">M15 (15 Minutos)</option>
                         </select>
                     </div>
-                    <!-- Botão de Gerar Sinal -->
                     <button id="generate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg btn-glow focus:outline-none focus:ring-4 focus:ring-indigo-500/50">
                         Analisar e Gerar Sinal
                     </button>
                 </div>
-                <!-- Área de Resultado e Loader -->
-                <div id="result-area" class="px-6 pb-6 min-h-[180px] flex items-center justify-center">
+                <!-- Área de Resultado -->
+                <div class="px-6 pb-6 min-h-[180px] flex items-center justify-center">
                     <div id="loader" class="hidden flex items-center justify-center">
                         <div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div>
                     </div>
@@ -199,15 +181,14 @@
             </div>
         </div>
 
-        <!-- ===== SEÇÃO DO BROKER (DIREITA) ===== -->
+        <!-- ===== SEÇÃO DO BROKER (DIREITA/BAIXO) ===== -->
         <div class="broker-section">
             <iframe 
                 src="https://trade.avalonbroker.com/register?aff=755901&aff_model=revenue&afftrack=" 
-                class="w-full h-full bg-white" 
+                class="broker-iframe" 
                 title="Plataforma Avalon Broker">
             </iframe>
         </div>
-
     </div>
 
     <script>
@@ -229,7 +210,6 @@
             signalCard.classList.add('hidden');
             signalCard.classList.remove('fade-in-scale');
             loader.classList.remove('hidden');
-
             const analysisTime = Math.random() * 1500 + 2500; 
 
             setTimeout(() => {
@@ -269,15 +249,18 @@
         let clock = new THREE.Clock();
 
         function initBackground() {
+            const container = document.querySelector('.signal-generator-section');
+            if (!container) return;
+            
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
             camera.position.z = 50;
             camera.position.y = 10;
             camera.rotation.x = -0.2;
 
             const canvas = document.getElementById('bg-canvas');
             renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
 
             const particleCount = 20000;
             const positions = new Float32Array(particleCount * 3);
@@ -290,38 +273,29 @@
                 positions[i3] = (Math.random() - 0.5) * 200;
                 positions[i3 + 1] = (Math.random() - 0.5) * 50;
                 positions[i3 + 2] = (Math.random() - 0.5) * 100;
-
                 const mixedColor = purpleColor.clone().lerp(indigoColor, Math.random());
-                colors[i3] = mixedColor.r;
-                colors[i3 + 1] = mixedColor.g;
-                colors[i3 + 2] = mixedColor.b;
+                colors[i3] = mixedColor.r; colors[i3+1] = mixedColor.g; colors[i3+2] = mixedColor.b;
             }
 
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
             const material = new THREE.PointsMaterial({
-                size: 0.15,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.8,
-                blending: THREE.AdditiveBlending,
+                size: 0.15, vertexColors: true, transparent: true,
+                opacity: 0.8, blending: THREE.AdditiveBlending,
             });
-
             points = new THREE.Points(geometry, material);
             scene.add(points);
-
             animate();
         }
 
         function animate() {
+            if (!renderer) return;
             requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
             const positions = points.geometry.attributes.position.array;
             for (let i = 0; i < positions.length; i += 3) {
-                const x = positions[i];
-                const z = positions[i+2];
+                const x = positions[i]; const z = positions[i+2];
                 positions[i + 1] = Math.sin((x + elapsedTime) * 0.2) * 3 + Math.sin((z + elapsedTime) * 0.3) * 2;
             }
             points.geometry.attributes.position.needsUpdate = true;
@@ -331,9 +305,11 @@
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const container = document.querySelector('.signal-generator-section');
+            if (!container || !camera || !renderer) return;
+            camera.aspect = container.offsetWidth / container.offsetHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
         }
 
         window.addEventListener('resize', onWindowResize, false);
