@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sinais Avalon Pro + Broker</title>
+    <title>Sinais Avalon Pro + Plataforma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,166 +11,81 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         html, body {
-            margin: 0;
-            padding: 0;
-            background-color: #0c0a18;
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            margin: 0; padding: 0; background-color: #0c0a18; font-family: 'Inter', sans-serif;
         }
-
         .main-container {
-            display: flex;
-            width: 100%;
-            /* Stack on mobile, side-by-side on desktop */
-            flex-direction: column;
-        }
-        @media (min-width: 1024px) { /* lg breakpoint */
-            .main-container {
-                flex-direction: row;
-                height: 100vh; /* Fill the screen height on desktop */
-            }
-        }
-
-        /* Left side: Signal Generator */
-        .signal-generator-section {
-            position: relative; /* For the canvas background */
-            overflow: hidden;   /* To contain the canvas */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
-            width: 100%;
+            display: flex; width: 100%; flex-direction: column;
         }
         @media (min-width: 1024px) {
-            .signal-generator-section {
-                flex: 1; /* Takes 50% width on desktop */
-                height: 100%;
-            }
+            .main-container { flex-direction: row; height: 100vh; }
         }
-        
-        /* The content of the generator, sits on top of the canvas */
-        .signal-generator-content {
-            position: relative;
-            z-index: 2;
-        }
-
-        #bg-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        /* Right side: Broker Iframe */
-        .broker-section {
-            width: 100%;
-            height: 100vh; /* Takes full viewport height on its own */
+        .signal-generator-section, .platform-launcher-section {
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+            padding: 2rem 1rem; width: 100%;
         }
         @media (min-width: 1024px) {
-            .broker-section {
-                flex: 1; /* Takes 50% width on desktop */
-                height: 100%;
-                padding: 1rem;
-                padding-left: 0.5rem;
-            }
+            .signal-generator-section, .platform-launcher-section { flex: 1; height: 100%; }
         }
-        
-        .broker-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background-color: #fff; /* Fallback color */
-        }
-        @media (min-width: 1024px) {
-            .broker-iframe {
-                border-radius: 0.75rem; /* Rounded corners on desktop */
-            }
-        }
-
-        /* --- Component Styles --- */
+        .platform-launcher-section { background: rgba(10, 8, 20, 0.5); }
+        .content-wrapper { position: relative; z-index: 2; }
+        #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         .glass-card {
-            background: rgba(17, 24, 39, 0.65);
-            backdrop-filter: blur(15px);
+            background: rgba(17, 24, 39, 0.65); backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 8px 32px 0 rgba(106, 72, 238, 0.25);
         }
         .fade-in-scale { animation: fadeInScale 0.5s ease-in-out forwards; }
-        @keyframes fadeInScale {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .loader-bar {
             width: 10px; height: 50px; margin: 0 4px; border-radius: 4px;
-            background-color: #818cf8;
-            animation: loading-wave 1.2s infinite ease-in-out;
+            background-color: #818cf8; animation: loading-wave 1.2s infinite ease-in-out;
         }
-        .loader-bar:nth-child(2) { animation-delay: 0.1s; }
-        .loader-bar:nth-child(3) { animation-delay: 0.2s; }
-        .loader-bar:nth-child(4) { animation-delay: 0.3s; }
-        @keyframes loading-wave {
-            0%, 40%, 100% { transform: scaleY(0.4); background-color: #6366f1; }
-            20% { transform: scaleY(1.0); background-color: #a5b4fc; }
-        }
+        .loader-bar:nth-child(2) { animation-delay: 0.1s; } .loader-bar:nth-child(3) { animation-delay: 0.2s; } .loader-bar:nth-child(4) { animation-delay: 0.3s; }
+        @keyframes loading-wave { 0%, 40%, 100% { transform: scaleY(0.4); } 20% { transform: scaleY(1.0); } }
         .btn-glow {
-            position: relative;
-            transition: all 0.3s ease-in-out;
+            position: relative; transition: all 0.3s ease-in-out;
         }
         .btn-glow::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             border-radius: 0.5rem;
             background: linear-gradient(45deg, #a855f7, #6366f1, #3b82f6);
-            filter: blur(15px); opacity: 0.75; z-index: -1;
-            transition: opacity 0.3s ease-in-out;
+            filter: blur(15px); opacity: 0.75; z-index: -1; transition: opacity 0.3s ease-in-out;
         }
         .btn-glow:hover::before { opacity: 1; }
         .btn-glow:hover { transform: translateY(-2px) scale(1.02); }
-        .text-glow-green { text-shadow: 0 0 8px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.5); }
-        .text-glow-red { text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5); }
+        .text-glow-green { text-shadow: 0 0 8px rgba(34, 197, 94, 0.8); }
+        .text-glow-red { text-shadow: 0 0 8px rgba(239, 68, 68, 0.8); }
     </style>
 </head>
 <body>
-
     <div class="main-container">
-
-        <!-- ===== SEÇÃO DO GERADOR DE SINAIS (ESQUERDA/CIMA) ===== -->
+        <!-- ===== SEÇÃO DO GERADOR DE SINAIS (ESQUERDA) ===== -->
         <div class="signal-generator-section">
             <canvas id="bg-canvas"></canvas>
-            <div class="w-full max-w-md mx-auto glass-card rounded-2xl signal-generator-content">
-                <!-- Cabeçalho -->
+            <div class="w-full max-w-md mx-auto glass-card rounded-2xl content-wrapper">
                 <div class="p-6 text-center border-b border-white/10">
-                    <h1 class="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400">
-                        Sinais Avalon Pro
-                    </h1>
+                    <h1 class="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Sinais Avalon Pro</h1>
                     <p class="text-sm text-indigo-200/70 mt-1">Análise de mercado em tempo real</p>
                 </div>
                 <div class="p-6">
-                    <!-- Controles -->
                     <div class="mb-6">
                         <label for="crypto-select" class="block text-sm font-medium text-gray-300 mb-2">Escolha o Ativo</label>
-                        <select id="crypto-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
-                            <option value="BTC/USD">Bitcoin (BTC/USD)</option><option value="ETH/USD">Ethereum (ETH/USD)</option><option value="SOL/USD">Solana (SOL/USD)</option><option value="ADA/USD">Cardano (ADA/USD)</option>
+                        <select id="crypto-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500">
+                            <option>Bitcoin (BTC/USD)</option><option>Ethereum (ETH/USD)</option><option>Solana (SOL/USD)</option><option>Cardano (ADA/USD)</option>
                         </select>
                     </div>
                     <div class="mb-8">
                         <label for="timeframe-select" class="block text-sm font-medium text-gray-300 mb-2">Escolha o Timeframe</label>
-                        <select id="timeframe-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
-                            <option value="1">M1 (1 Minuto)</option><option value="5">M5 (5 Minutos)</option><option value="15">M15 (15 Minutos)</option>
+                        <select id="timeframe-select" class="w-full bg-gray-900/70 border border-gray-600/50 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500">
+                            <option value="1">M1</option><option value="5">M5</option><option value="15">M15</option>
                         </select>
                     </div>
-                    <button id="generate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg btn-glow focus:outline-none focus:ring-4 focus:ring-indigo-500/50">
-                        Analisar e Gerar Sinal
-                    </button>
+                    <button id="generate-btn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg btn-glow">Analisar e Gerar Sinal</button>
                 </div>
-                <!-- Área de Resultado -->
                 <div class="px-6 pb-6 min-h-[180px] flex items-center justify-center">
-                    <div id="loader" class="hidden flex items-center justify-center">
-                        <div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div>
-                    </div>
+                    <div id="loader" class="hidden flex"><div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div><div class="loader-bar"></div></div>
                     <div id="signal-card" class="hidden w-full text-center p-4 rounded-lg bg-gray-900/50 border-2">
-                        <p id="signal-asset" class="text-sm font-medium text-gray-400 mb-2"></p>
+                        <p id="signal-asset" class="text-sm text-gray-400 mb-2"></p>
                         <p id="signal-direction" class="text-5xl font-black tracking-wider"></p>
                         <div class="mt-4 text-sm bg-gray-900/70 rounded-md px-3 py-2 inline-block border border-white/10">
                             <span class="text-gray-400">Expira às:</span>
@@ -181,13 +96,16 @@
             </div>
         </div>
 
-        <!-- ===== SEÇÃO DO BROKER (DIREITA/BAIXO) ===== -->
-        <div class="broker-section">
-            <iframe 
-                src="https://trade.avalonbroker.com/register?aff=755901&aff_model=revenue&afftrack=" 
-                class="broker-iframe" 
-                title="Plataforma Avalon Broker">
-            </iframe>
+        <!-- ===== SEÇÃO PARA ABRIR A PLATAFORMA (DIREITA) ===== -->
+        <div class="platform-launcher-section">
+            <div class="text-center">
+                <svg class="mx-auto h-24 w-24 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>
+                <h2 class="mt-4 text-2xl font-bold text-white">Pronto para Operar?</h2>
+                <p class="mt-2 text-lg text-gray-400">Clique abaixo para abrir a plataforma.</p>
+                <button id="open-platform-btn" class="mt-8 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg text-xl btn-glow transition-transform duration-300 transform hover:scale-105">
+                    Iniciar Plataforma Lado a Lado
+                </button>
+            </div>
         </div>
     </div>
 
@@ -198,20 +116,14 @@
         const signalCard = document.getElementById('signal-card');
         const cryptoSelect = document.getElementById('crypto-select');
         const timeframeSelect = document.getElementById('timeframe-select');
-        
         const signalAsset = document.getElementById('signal-asset');
         const signalDirection = document.getElementById('signal-direction');
         const signalExpiry = document.getElementById('signal-expiry');
 
         generateBtn.addEventListener('click', () => {
-            generateBtn.disabled = true;
-            generateBtn.textContent = 'Analisando Mercado...';
-            generateBtn.classList.remove('btn-glow');
-            signalCard.classList.add('hidden');
-            signalCard.classList.remove('fade-in-scale');
+            generateBtn.disabled = true; generateBtn.textContent = 'Analisando...';
+            signalCard.classList.add('hidden'); signalCard.classList.remove('fade-in-scale');
             loader.classList.remove('hidden');
-            const analysisTime = Math.random() * 1500 + 2500; 
-
             setTimeout(() => {
                 const currentTime = new Date();
                 const timeframe = parseInt(timeframeSelect.value);
@@ -223,9 +135,9 @@
                 signalDirection.textContent = direction;
                 signalExpiry.textContent = formattedExpiry;
 
-                signalDirection.classList.remove('text-green-500', 'text-red-500', 'text-glow-green', 'text-glow-red');
-                signalCard.classList.remove('border-green-500', 'border-red-500');
-
+                signalDirection.className = 'text-5xl font-black tracking-wider'; // Reset
+                signalCard.className = 'w-full text-center p-4 rounded-lg bg-gray-900/50 border-2 fade-in-scale'; // Reset
+                
                 if (direction === 'COMPRAR') {
                     signalDirection.classList.add('text-green-500', 'text-glow-green');
                     signalCard.classList.add('border-green-500');
@@ -236,74 +148,64 @@
                 
                 loader.classList.add('hidden');
                 signalCard.classList.remove('hidden');
-                signalCard.classList.add('fade-in-scale');
+                generateBtn.disabled = false; generateBtn.textContent = 'Analisar e Gerar Sinal';
+            }, Math.random() * 1500 + 2000);
+        });
 
-                generateBtn.disabled = false;
-                generateBtn.textContent = 'Analisar e Gerar Sinal';
-                generateBtn.classList.add('btn-glow');
-            }, analysisTime);
+        // --- LÓGICA PARA ABRIR A PLATAFORMA ---
+        document.getElementById('open-platform-btn').addEventListener('click', () => {
+            const width = Math.floor(window.screen.width / 2);
+            const height = window.screen.height;
+            const left = width;
+            const top = 0;
+            const url = 'https://trade.avalonbroker.com/register?aff=755901&aff_model=revenue&afftrack=';
+            const windowFeatures = `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`;
+            window.open(url, 'AvalonBrokerPlatform', windowFeatures);
         });
 
         // --- LÓGICA DA ANIMAÇÃO DE FUNDO (THREE.JS) ---
-        let scene, camera, renderer, points;
-        let clock = new THREE.Clock();
-
+        let scene, camera, renderer, points, clock = new THREE.Clock();
         function initBackground() {
             const container = document.querySelector('.signal-generator-section');
             if (!container) return;
-            
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
-            camera.position.z = 50;
-            camera.position.y = 10;
-            camera.rotation.x = -0.2;
-
+            camera.position.set(0, 10, 50); camera.rotation.x = -0.2;
             const canvas = document.getElementById('bg-canvas');
             renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
             renderer.setSize(container.offsetWidth, container.offsetHeight);
-
-            const particleCount = 20000;
-            const positions = new Float32Array(particleCount * 3);
-            const colors = new Float32Array(particleCount * 3);
-            const purpleColor = new THREE.Color("#8b5cf6");
-            const indigoColor = new THREE.Color("#6366f1");
-
+            const particleCount = 20000, positions = new Float32Array(particleCount * 3), colors = new Float32Array(particleCount * 3);
+            const color1 = new THREE.Color("#8b5cf6"), color2 = new THREE.Color("#6366f1");
             for (let i = 0; i < particleCount; i++) {
                 let i3 = i * 3;
                 positions[i3] = (Math.random() - 0.5) * 200;
                 positions[i3 + 1] = (Math.random() - 0.5) * 50;
                 positions[i3 + 2] = (Math.random() - 0.5) * 100;
-                const mixedColor = purpleColor.clone().lerp(indigoColor, Math.random());
+                const mixedColor = color1.clone().lerp(color2, Math.random());
                 colors[i3] = mixedColor.r; colors[i3+1] = mixedColor.g; colors[i3+2] = mixedColor.b;
             }
-
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const material = new THREE.PointsMaterial({
-                size: 0.15, vertexColors: true, transparent: true,
-                opacity: 0.8, blending: THREE.AdditiveBlending,
-            });
+            const material = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
             points = new THREE.Points(geometry, material);
             scene.add(points);
             animate();
         }
-
         function animate() {
             if (!renderer) return;
             requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
             const positions = points.geometry.attributes.position.array;
             for (let i = 0; i < positions.length; i += 3) {
-                const x = positions[i]; const z = positions[i+2];
-                positions[i + 1] = Math.sin((x + elapsedTime) * 0.2) * 3 + Math.sin((z + elapsedTime) * 0.3) * 2;
+                positions[i + 1] += Math.sin((positions[i] + elapsedTime) * 0.2) * 0.01 + Math.sin((positions[i+2] + elapsedTime) * 0.3) * 0.01;
+                if(positions[i+1] > 25) positions[i+1] = -25; // Reset particles
             }
             points.geometry.attributes.position.needsUpdate = true;
             camera.position.x = Math.sin(elapsedTime * 0.1) * 5;
             camera.lookAt(scene.position);
             renderer.render(scene, camera);
         }
-
         function onWindowResize() {
             const container = document.querySelector('.signal-generator-section');
             if (!container || !camera || !renderer) return;
@@ -311,7 +213,6 @@
             camera.updateProjectionMatrix();
             renderer.setSize(container.offsetWidth, container.offsetHeight);
         }
-
         window.addEventListener('resize', onWindowResize, false);
         initBackground();
     </script>
