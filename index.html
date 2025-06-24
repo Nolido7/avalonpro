@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sinais Avalon Pro - Painel Integrado</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -65,9 +66,14 @@
             background-color: #4f46e5;
             box-shadow: 0 0 10px rgba(79, 70, 229, 0.5), 0 0 20px rgba(79, 70, 229, 0.3);
         }
-        .btn-neon-primary:hover {
+        .btn-neon-primary:hover:not(:disabled) {
             background-color: #6366f1;
             box-shadow: 0 0 15px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.5);
+        }
+        .btn-neon-primary:disabled {
+            background-color: #374151;
+            box-shadow: none;
+            cursor: not-allowed;
         }
         .btn-neon-success {
             background-color: #16a34a;
@@ -77,13 +83,10 @@
             background-color: #15803d;
             box-shadow: 0 0 15px rgba(21, 128, 61, 0.8), 0 0 30px rgba(21, 128, 61, 0.5);
         }
-        /* --- Animação do Loader --- */
-        .loader-bar {
-            width: 8px; height: 40px; margin: 0 3px; border-radius: 4px;
-            background-color: #818cf8; animation: loading-wave 1.2s infinite ease-in-out;
+        /* --- Animação do Loader 0-100% --- */
+        #loader-progress {
+            transition: stroke-dashoffset 0.1s linear;
         }
-        .loader-bar:nth-child(2) { animation-delay: 0.1s; } .loader-bar:nth-child(3) { animation-delay: 0.2s; } .loader-bar:nth-child(4) { animation-delay: 0.3s; }
-        @keyframes loading-wave { 0%, 40%, 100% { transform: scaleY(0.4); } 20% { transform: scaleY(1.0); } }
         /* --- Animações e Transições --- */
         .fade-in { animation: fadeIn 0.7s ease-in-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -114,13 +117,20 @@
                     <div class="flex-1">
                         <label for="crypto-select" class="sr-only">Ativo</label>
                         <select id="crypto-select" class="w-full text-sm rounded-lg p-2">
-                            <option>Bitcoin (BTC/USD)</option><option>Ethereum (ETH/USD)</option>
+                            <option value="BTC/USD">Bitcoin (BTC/USD)</option>
+                            <option value="ETH/USD">Ethereum (ETH/USD)</option>
+                            <option value="SOL/USD">Solana (SOL/USD)</option>
+                            <option value="ADA/USD">Cardano (ADA/USD)</option>
+                            <option value="XRP/USD">Ripple (XRP/USD)</option>
+                            <option value="DOGE/USD">Dogecoin (DOGE/USD)</option>
                         </select>
                     </div>
                     <div class="flex-1">
                         <label for="timeframe-select" class="sr-only">Timeframe</label>
-                        <select id="timeframe-select" class="w-full text-sm rounded-lg p-2" value="5">
-                            <option value="1">M1</option><option value="5">M5</option><option value="15">M15</option>
+                        <select id="timeframe-select" class="w-full text-sm rounded-lg p-2">
+                            <option value="1">M1</option>
+                            <option value="5" selected>M5</option>
+                            <option value="15">M15</option>
                         </select>
                     </div>
                 </div>
@@ -132,7 +142,14 @@
                          <p id="signal-direction" class="text-2xl font-bold"></p>
                          <p id="signal-expiry" class="text-xs text-gray-400"></p>
                      </div>
-                     <div id="loader" class="hidden"><div class="loader-bar"></div><div class="loader-bar"></div></div>
+                     <!-- Loader 0-100% -->
+                     <div id="loader" class="hidden relative w-16 h-16 flex items-center justify-center">
+                        <svg class="absolute w-full h-full" viewBox="0 0 100 100">
+                            <circle class="text-gray-700" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+                            <circle id="loader-progress" class="text-indigo-500" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" style="transform: rotate(-90deg); transform-origin: 50% 50%;" />
+                        </svg>
+                        <span id="loader-percentage" class="text-base font-bold text-white">0%</span>
+                    </div>
                 </div>
             </div>
              <div class="text-center p-2 border-t border-gray-800">
@@ -148,7 +165,7 @@
     </main>
 
     <script>
-        // --- Lógica do Gerador de Sinal ---
+        // --- Elementos do DOM ---
         const generateBtn = document.getElementById('generate-btn');
         const loader = document.getElementById('loader');
         const signalCard = document.getElementById('signal-card');
@@ -156,36 +173,60 @@
         const timeframeSelect = document.getElementById('timeframe-select');
         const signalDirection = document.getElementById('signal-direction');
         const signalExpiry = document.getElementById('signal-expiry');
-
-        generateBtn.addEventListener('click', () => {
-            generateBtn.disabled = true;
-            signalCard.classList.add('hidden');
-            loader.classList.remove('hidden');
-            setTimeout(() => {
-                const currentTime = new Date();
-                const timeframe = parseInt(timeframeSelect.value);
-                const direction = currentTime.getMinutes() % 2 === 0 ? 'COMPRAR' : 'VENDER';
-                const expiryTime = new Date(currentTime.getTime() + timeframe * 60000);
-                signalDirection.textContent = direction;
-                signalExpiry.textContent = `Expira ${expiryTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-                signalDirection.className = 'text-2xl font-bold'; // Reset
-                if (direction === 'COMPRAR') {
-                    signalDirection.classList.add('text-green-400');
-                } else {
-                    signalDirection.classList.add('text-red-500');
-                }
-                loader.classList.add('hidden');
-                signalCard.classList.remove('hidden');
-                generateBtn.disabled = false;
-            }, Math.random() * 1000 + 1500);
-        });
-
-        // --- Lógica para Abrir a Plataforma ---
+        const loaderProgress = document.getElementById('loader-progress');
+        const loaderPercentage = document.getElementById('loader-percentage');
         const openPlatformBtn = document.getElementById('open-platform-btn');
         const platformSection = document.getElementById('platform-section');
         const brokerIframe = document.getElementById('broker-iframe');
         const platformUrl = 'https://trade.avalonbroker.com/register?aff=755901&aff_model=revenue&afftrack=';
 
+        // --- Lógica do Gerador de Sinal com Animação 0-100% ---
+        generateBtn.addEventListener('click', () => {
+            // 1. Prepara a UI para a animação
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Analisando...';
+            signalCard.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            let progress = 0;
+            const analysisTime = Math.random() * 1000 + 1500; // Duração total da análise
+            const intervalTime = 25; // Atualiza a cada 25ms
+            const progressIncrement = 100 / (analysisTime / intervalTime);
+            const circumference = 2 * Math.PI * 40; // 2 * pi * r do SVG
+
+            const progressInterval = setInterval(() => {
+                progress += progressIncrement;
+                if (progress >= 100) {
+                    // 2. Animação concluída
+                    clearInterval(progressInterval);
+                    progress = 100;
+                    
+                    // 3. Gera e exibe o sinal
+                    const currentTime = new Date();
+                    const timeframe = parseInt(timeframeSelect.value);
+                    const direction = currentTime.getMinutes() % 2 === 0 ? 'COMPRAR' : 'VENDER';
+                    const expiryTime = new Date(currentTime.getTime() + timeframe * 60000);
+                    
+                    signalDirection.textContent = direction;
+                    signalExpiry.textContent = `Expira ${expiryTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+                    signalDirection.className = 'text-2xl font-bold'; // Reseta classes
+                    signalDirection.classList.add(direction === 'COMPRAR' ? 'text-green-400' : 'text-red-500');
+
+                    loader.classList.add('hidden');
+                    signalCard.classList.remove('hidden');
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Gerar Sinal';
+                }
+                
+                // 4. Atualiza a UI da animação
+                loaderPercentage.textContent = `${Math.floor(progress)}%`;
+                const offset = circumference - (progress / 100) * circumference;
+                loaderProgress.style.strokeDashoffset = offset;
+
+            }, intervalTime);
+        });
+
+        // --- Lógica para Abrir/Fechar a Plataforma ---
         openPlatformBtn.addEventListener('click', () => {
             if (platformSection.style.display === 'block') {
                 platformSection.style.display = 'none';
@@ -200,7 +241,6 @@
                 platformSection.scrollIntoView({ behavior: 'smooth' });
             }
         });
-
 
         // --- Lógica da Animação de Fundo (THREE.JS) ---
         let scene, camera, renderer, points, clock = new THREE.Clock();
@@ -219,10 +259,7 @@
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             const material = new THREE.PointsMaterial({
-                size: 0.015,
-                color: '#4f46e5',
-                transparent: true,
-                blending: THREE.AdditiveBlending,
+                size: 0.015, color: '#4f46e5', transparent: true, blending: THREE.AdditiveBlending
             });
             points = new THREE.Points(geometry, material);
             scene.add(points);
@@ -230,8 +267,7 @@
         }
         function animate() {
             requestAnimationFrame(animate);
-            const elapsedTime = clock.getElapsedTime();
-            points.rotation.y = elapsedTime * 0.1;
+            points.rotation.y = clock.getElapsedTime() * 0.1;
             renderer.render(scene, camera);
         }
         function onWindowResize() {
